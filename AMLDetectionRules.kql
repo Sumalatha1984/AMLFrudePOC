@@ -1,0 +1,149 @@
+// ============================================================================
+// AML DETECTION RULES — paste into Microsoft Fabric KQL queryset
+//
+// WHERE TO PASTE (navigation):
+//   1. Workspace AMLDetectionPOC -> open AMLEventhouse
+//   2. Click the database AMLRealtimeDB (left tree)
+//   3. Top toolbar -> "+ New related item" -> "KQL queryset"
+//      (older UI: "New KQL queryset" button) -> name: AMLDetectionRules -> Create
+//   4. The KQL editor opens. Paste THIS WHOLE FILE into the editor.
+//   5. Each rule is one block separated by blank lines. Put the cursor anywhere
+//      inside a block and press Shift+Enter (or click Run) to run JUST that block.
+//
+// PREREQUISITE: accounts, customers, suspicious_flags must be imported into the
+// Eventhouse first (AMLRealtimeDB -> Get data / OneLake shortcut -> AMLLakehouse
+// -> select those 3 tables). Rules 4, 8 and 9 join them.
+//
+// EXPECTED RESULTS with the simulator data replayed (replay_csv.py):
+//   Rule 1 -> structuring accounts ACC-2001..ACC-2010
+//   Rule 2/3 -> layering ACC-2101.. / mule ACC-2201..
+//   Rule 4 -> dormant accounts ACC-2401..
+//   Rule 5 -> velocity accounts ACC-2501..
+//   Rule 6 -> smurfing accounts ACC-2801..
+//   Rule 7 -> cash-night accounts ACC-2301..
+//   Rule 8 -> PEP CUST-26xx / watchlist CUST-27xx
+//   Rule 9 -> any flag rows created in the last 65 seconds (empty when idle)
+// ============================================================================
+
+
+// ── RULE 1 · STRUCTURING (RULE-001, HIGH) ──────────────────────────────────
+// Fires when: 3+ transactions of 8,000–9,999 by the same account on the same day.
+realtime_transactions
+| where amount between (8000 .. 9999)
+| summarize txn_count = count(),
+            total_amount = sum(amount),
+            first_txn = min(timestamp),
+            last_txn = max(timestamp)
+    by account_id, customer_id, bin(timestamp, 1d)
+| where txn_count >= 3
+| extend pattern_type = "STRUCTURING", rule_id = "RULE-001", severity = "HIGH",
+         alert_reason = strcat("Account ", account_id, " made ", tostring(txn_count),
+                               " sub-threshold txns totaling ", tostring(total_amount))
+| project account_id, customer_id, txn_count, total_amount,
+          pattern_type, rule_id, severity, alert_reason, first_txn, last_txn
+
+
+// ── RULES 2+3 · LAYERING / MULE pass-through (RULE-002 / RULE-003, CRITICAL) ─
+// Fires when: >=90% of inbound wires leave the account within 120 minutes.
+// senders >= 2  -> MULE_ACCOUNT (many senders, one exit)
+// senders == 1  -> LAYERING (single large pass-through)
+let inbound = realtime_transactions
+    | where txn_type == "WIRE_IN"
+    | project account_id, amount_in = amount, t_in = timestamp,
+              sender = counterparty_account;
+let outbound = realtime_transactions
+    | where txn_type in ("WIRE_OUT", "UPI_OUT")
+    | project account_id, amount_out = amount, t_out = timestamp;
+inbound
+| join kind=inner outbound on account_id
+| where t_out > t_in and datetime_diff("minute", t_out, t_in) <= 120
+| summarize total_in = sum(amount_in),
+            total_out = max(amount_out),
+            senders = dcount(sender),
+            min_gap_min = min(datetime_diff("minute", t_out, t_in))
+    by account_id
+| where total_out * 1.0 / total_in > 0.90
+| extend pattern_type = iff(senders >= 2, "MULE_ACCOUNT", "LAYERING"),
+         rule_id      = iff(senders >= 2, "RULE-003", "RULE-002"),
+         severity     = "CRITICAL",
+         pass_through_pct = round(total_out * 100.0 / total_in, 1)
+| project account_id, total_in, total_out, pass_through_pct, senders,
+          min_gap_min, pattern_type, rule_id, severity
+
+
+// ── RULE 4 · DORMANT ACCOUNT SPIKE (RULE-004, HIGH) ────────────────────────
+// Fires when: account inactive > 180 days (from accounts reference) suddenly
+// moves > 50,000. Requires the accounts shortcut/import.
+realtime_transactions
+| where amount > 50000
+| join kind=inner (
+    accounts
+    | where days_inactive > 180
+    | project account_id, days_inactive
+  ) on account_id
+| extend pattern_type = "DORMANT_SPIKE", rule_id = "RULE-004", severity = "HIGH"
+| project account_id, customer_id, amount, days_inactive,
+          pattern_type, rule_id, severity, timestamp
+
+
+// ── RULE 5 · HIGH VELOCITY (RULE-006, MEDIUM) ──────────────────────────────
+// Fires when: more than 5 transactions from one account within one hour.
+realtime_transactions
+| summarize txn_count_1h = count(), amount_sum_1h = sum(amount)
+    by account_id, bin(timestamp, 1h)
+| where txn_count_1h > 5
+| extend pattern_type = "HIGH_VELOCITY", rule_id = "RULE-006", severity = "MEDIUM"
+| project account_id, txn_count_1h, amount_sum_1h,
+          pattern_type, rule_id, severity, timestamp
+
+
+// ── RULE 6 · SMURFING (RULE-009, HIGH) ─────────────────────────────────────
+// Fires when: 7+ small cash deposits (< 7,500) within a 2-day window.
+realtime_transactions
+| where txn_type == "CASH_DEP" and amount < 7500
+| summarize dep_count = count(), dep_total = sum(amount)
+    by account_id, bin(timestamp, 2d)
+| where dep_count >= 7
+| extend pattern_type = "SMURFING", rule_id = "RULE-009", severity = "HIGH"
+| project account_id, dep_count, dep_total, pattern_type, rule_id, severity, timestamp
+
+
+// ── RULE 7 · CASH INTENSIVE AT NIGHT (RULE-005, HIGH) ──────────────────────
+// Fires when: cash deposit > 25,000 between 22:00 and 05:59.
+realtime_transactions
+| where txn_type == "CASH_DEP" and amount > 25000
+| where hourofday(timestamp) >= 22 or hourofday(timestamp) <= 5
+| extend pattern_type = "CASH_INTENSIVE", rule_id = "RULE-005", severity = "HIGH"
+| project account_id, customer_id, amount, hour = hourofday(timestamp),
+          pattern_type, rule_id, severity, timestamp
+
+
+// ── RULE 8 · WATCHLIST HIT / PEP LARGE TXN (RULE-008 / RULE-007, CRITICAL) ──
+// Fires when: a watchlisted or PEP customer transacts above threshold.
+// Requires the customers shortcut/import.
+realtime_transactions
+| where amount > 5000
+| join kind=inner (
+    customers
+    | where watchlist_match != "NONE" or pep_flag == "Y"
+    | project customer_id, watchlist_match, pep_flag
+  ) on customer_id
+| where watchlist_match != "NONE" or (pep_flag == "Y" and amount > 100000)
+| extend pattern_type = iff(watchlist_match != "NONE", "WATCHLIST_HIT", "PEP_LARGE_TXN"),
+         rule_id      = iff(watchlist_match != "NONE", "RULE-008", "RULE-007"),
+         severity     = "CRITICAL"
+| project account_id, customer_id, amount, watchlist_match, pep_flag,
+          pattern_type, rule_id, severity, timestamp
+
+
+// ── RULE 9 · LIVE FLAG MONITOR (used by the Operations Agent, no alert here) ─
+// The Operations Agent polls this every 60 s. Returns flags created in the
+// last 65 seconds that are CRITICAL/HIGH and still pending. Empty when idle.
+// Requires the suspicious_flags shortcut/import.
+suspicious_flags
+| where created_at > ago(65s)
+| where severity in ("CRITICAL", "HIGH")
+| where analyst_decision == "PENDING"
+| project flag_id, txn_id, account_id, customer_id, pattern_type, rule_id,
+          ml_score, severity, created_at, notes
+| order by severity asc, ml_score desc
