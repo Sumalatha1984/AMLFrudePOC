@@ -1,0 +1,125 @@
+// ============================================================================
+// AML DETECTION RULES v2 — FIXED for string timestamp from Eventstream JSON
+//
+// FIX: Added "| extend timestamp = todatetime(timestamp)" to every rule.
+// This converts the string "2026-06-13T10:41:39.000Z" to a proper datetime
+// so that bin(), datetime_diff(), hourofday(), ago() all work correctly.
+//
+// WHERE TO PASTE: AMLEventhouse -> AMLRealtimeDB -> KQL queryset AMLDetectionRules
+// ============================================================================
+
+
+// ── RULE 1 · STRUCTURING (RULE-001, HIGH) ──────────────────────────────────
+realtime_transactions
+| extend timestamp = todatetime(timestamp)
+| where amount between (8000 .. 9999)
+| summarize txn_count = count(),
+            total_amount = sum(amount),
+            first_txn = min(timestamp),
+            last_txn = max(timestamp)
+    by account_id, customer_id, bin(timestamp, 1d)
+| where txn_count >= 3
+| extend pattern_type = "STRUCTURING", rule_id = "RULE-001", severity = "HIGH"
+| project account_id, customer_id, txn_count, total_amount,
+          pattern_type, rule_id, severity, first_txn, last_txn
+
+
+// ── RULES 2+3 · LAYERING / MULE (RULE-002 / RULE-003, CRITICAL) ───────────
+let inbound = realtime_transactions
+    | extend timestamp = todatetime(timestamp)
+    | where txn_type == "WIRE_IN"
+    | project account_id, amount_in = amount, t_in = timestamp,
+              sender = counterparty_account;
+let outbound = realtime_transactions
+    | extend timestamp = todatetime(timestamp)
+    | where txn_type in ("WIRE_OUT", "UPI_OUT")
+    | project account_id, amount_out = amount, t_out = timestamp;
+inbound
+| join kind=inner outbound on account_id
+| where t_out > t_in and datetime_diff("minute", t_out, t_in) <= 120
+| summarize total_in = sum(amount_in),
+            total_out = max(amount_out),
+            senders = dcount(sender),
+            min_gap_min = min(datetime_diff("minute", t_out, t_in))
+    by account_id
+| where total_out * 1.0 / total_in > 0.90
+| extend pattern_type = iff(senders >= 2, "MULE_ACCOUNT", "LAYERING"),
+         rule_id      = iff(senders >= 2, "RULE-003", "RULE-002"),
+         severity     = "CRITICAL",
+         pass_through_pct = round(total_out * 100.0 / total_in, 1)
+| project account_id, total_in, total_out, pass_through_pct, senders,
+          min_gap_min, pattern_type, rule_id, severity
+
+
+// ── RULE 4 · DORMANT ACCOUNT SPIKE (RULE-004, HIGH) ────────────────────────
+realtime_transactions
+| extend timestamp = todatetime(timestamp)
+| where amount > 50000
+| join kind=inner (
+    accounts
+    | where days_inactive > 180
+    | project account_id, days_inactive
+  ) on account_id
+| extend pattern_type = "DORMANT_SPIKE", rule_id = "RULE-004", severity = "HIGH"
+| project account_id, customer_id, amount, days_inactive,
+          pattern_type, rule_id, severity, timestamp
+
+
+// ── RULE 5 · HIGH VELOCITY (RULE-006, MEDIUM) ──────────────────────────────
+realtime_transactions
+| extend timestamp = todatetime(timestamp)
+| summarize txn_count_1h = count(), amount_sum_1h = sum(amount)
+    by account_id, bin(timestamp, 1h)
+| where txn_count_1h > 5
+| extend pattern_type = "HIGH_VELOCITY", rule_id = "RULE-006", severity = "MEDIUM"
+| project account_id, txn_count_1h, amount_sum_1h,
+          pattern_type, rule_id, severity, timestamp
+
+
+// ── RULE 6 · SMURFING (RULE-009, HIGH) ─────────────────────────────────────
+realtime_transactions
+| extend timestamp = todatetime(timestamp)
+| where txn_type == "CASH_DEP" and amount < 7500
+| summarize dep_count = count(), dep_total = sum(amount)
+    by account_id, bin(timestamp, 2d)
+| where dep_count >= 7
+| extend pattern_type = "SMURFING", rule_id = "RULE-009", severity = "HIGH"
+| project account_id, dep_count, dep_total, pattern_type, rule_id, severity, timestamp
+
+
+// ── RULE 7 · CASH INTENSIVE AT NIGHT (RULE-005, HIGH) ──────────────────────
+realtime_transactions
+| extend timestamp = todatetime(timestamp)
+| where txn_type == "CASH_DEP" and amount > 25000
+| where hourofday(timestamp) >= 22 or hourofday(timestamp) <= 5
+| extend pattern_type = "CASH_INTENSIVE", rule_id = "RULE-005", severity = "HIGH"
+| project account_id, customer_id, amount, hour = hourofday(timestamp),
+          pattern_type, rule_id, severity, timestamp
+
+
+// ── RULE 8 · WATCHLIST HIT / PEP (RULE-008 / RULE-007, CRITICAL) ──────────
+realtime_transactions
+| extend timestamp = todatetime(timestamp)
+| where amount > 5000
+| join kind=inner (
+    customers
+    | where watchlist_match != "NONE" or pep_flag == "Y"
+    | project customer_id, watchlist_match, pep_flag
+  ) on customer_id
+| where watchlist_match != "NONE" or (pep_flag == "Y" and amount > 100000)
+| extend pattern_type = iff(watchlist_match != "NONE", "WATCHLIST_HIT", "PEP_LARGE_TXN"),
+         rule_id      = iff(watchlist_match != "NONE", "RULE-008", "RULE-007"),
+         severity     = "CRITICAL"
+| project account_id, customer_id, amount, watchlist_match, pep_flag,
+          pattern_type, rule_id, severity, timestamp
+
+
+// ── RULE 9 · LIVE FLAG MONITOR (Operations Agent polls this) ───────────────
+suspicious_flags
+| extend created_at = todatetime(created_at)
+| where created_at > ago(65s)
+| where severity in ("CRITICAL", "HIGH")
+| where analyst_decision == "PENDING"
+| project flag_id, txn_id, account_id, customer_id, pattern_type, rule_id,
+          ml_score, severity, created_at, notes
+| order by severity asc, ml_score desc
