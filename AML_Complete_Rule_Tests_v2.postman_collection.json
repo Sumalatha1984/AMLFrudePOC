@@ -1,0 +1,241 @@
+{
+  "info": {
+    "name": "AML Complete Rule Tests v2",
+    "_postman_id": "aml-full-test-v2",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0. HEALTH CHECK",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "https://func-aml-ingest-geaxfhegfdamazeu.eastus-01.azurewebsites.net/health?code=dd3F1brlv2jPbobOf8ibNgv2FDjHc-3qwdFyjE0UfaDBAzFumqP1hA==" }
+      }
+    },
+    {
+      "name": "--- RULE 1: STRUCTURING (send all 4) ---",
+      "request": { "method": "GET", "header": [], "url": { "raw": "https://func-aml-ingest-geaxfhegfdamazeu.eastus-01.azurewebsites.net/health?code=dd3F1brlv2jPbobOf8ibNgv2FDjHc-3qwdFyjE0UfaDBAzFumqP1hA==" } }
+    },
+    {
+      "name": "R1-STR-1: 9500 sub-threshold",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": { "mode": "raw", "raw": "{\n  \"txn_id\": \"TXN-T2-STR-001\",\n  \"account_id\": \"ACC-TEST-01\",\n  \"customer_id\": \"CUST-TEST-01\",\n  \"counterparty_account\": \"ACC-EXT-T100\",\n  \"amount\": 9500,\n  \"currency\": \"INR\",\n  \"txn_type\": \"WIRE_OUT\",\n  \"channel\": \"ONLINE\",\n  \"country\": \"IN\",\n  \"merchant_cat\": \"PERSONAL\"\n}" },
+        "url": { "raw": "https://func-aml-ingest-geaxfhegfdamazeu.eastus-01.azurewebsites.net/transactions?code=dd3F1brlv2jPbobOf8ibNgv2FDjHc-3qwdFyjE0UfaDBAzFumqP1hA==" }
+      }
+    },
+    {
+      "name": "R1-STR-2: 9200 sub-threshold",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": { "mode": "raw", "raw": "{\n  \"txn_id\": \"TXN-T2-STR-002\",\n  \"account_id\": \"ACC-TEST-01\",\n  \"customer_id\": \"CUST-TEST-01\",\n  \"counterparty_account\": \"ACC-EXT-T101\",\n  \"amount\": 9200,\n  \"currency\": \"INR\",\n  \"txn_type\": \"WIRE_OUT\",\n  \"channel\": \"ONLINE\",\n  \"country\": \"IN\",\n  \"merchant_cat\": \"PERSONAL\"\n}" },
+        "url": { "raw": "https://func-aml-ingest-geaxfhegfdamazeu.eastus-01.azurewebsites.net/transactions?code=dd3F1brlv2jPbobOf8ibNgv2FDjHc-3qwdFyjE0UfaDBAzFumqP1hA==" }
+      }
+    },
+    {
+      "name": "R1-STR-3: 8800 sub-threshold",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": { "mode": "raw", "raw": "{\n  \"txn_id\": \"TXN-T2-STR-003\",\n  \"account_id\": \"ACC-TEST-01\",\n  \"customer_id\": \"CUST-TEST-01\",\n  \"counterparty_account\": \"ACC-EXT-T102\",\n  \"amount\": 8800,\n  \"currency\": \"INR\",\n  \"txn_type\": \"WIRE_OUT\",\n  \"channel\": \"ONLINE\",\n  \"country\": \"IN\",\n  \"merchant_cat\": \"PERSONAL\"\n}" },
+        "url": { "raw": "https://func-aml-ingest-geaxfhegfdamazeu.eastus-01.azurewebsites.net/transactions?code=dd3F1brlv2jPbobOf8ibNgv2FDjHc-3qwdFyjE0UfaDBAzFumqP1hA==" }
+      }
+    },
+    {
+      "name": "R1-STR-4: 9900 sub-threshold",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": { "mode": "raw", "raw": "{\n  \"txn_id\": \"TXN-T2-STR-004\",\n  \"account_id\": \"ACC-TEST-01\",\n  \"customer_id\": \"CUST-TEST-01\",\n  \"counterparty_account\": \"ACC-EXT-T103\",\n  \"amount\": 9900,\n  \"currency\": \"INR\",\n  \"txn_type\": \"WIRE_OUT\",\n  \"channel\": \"ONLINE\",\n  \"country\": \"IN\",\n  \"merchant_cat\": \"PERSONAL\"\n}" },
+        "url": { "raw": "https://func-aml-ingest-geaxfhegfdamazeu.eastus-01.azurewebsites.net/transactions?code=dd3F1brlv2jPbobOf8ibNgv2FDjHc-3qwdFyjE0UfaDBAzFumqP1hA==" }
+      }
+    },
+    {
+      "name": "--- RULE 2: LAYERING (send both) ---",
+      "request": { "method": "GET", "header": [], "url": { "raw": "https://func-aml-ingest-geaxfhegfdamazeu.eastus-01.azurewebsites.net/health?code=dd3F1brlv2jPbobOf8ibNgv2FDjHc-3qwdFyjE0UfaDBAzFumqP1hA==" } }
+    },
+    {
+      "name": "R2-LAY-1: 500K WIRE_IN from UAE",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": { "mode": "raw", "raw": "{\n  \"txn_id\": \"TXN-T2-LAY-001\",\n  \"account_id\": \"ACC-TEST-02\",\n  \"customer_id\": \"CUST-TEST-02\",\n  \"counterparty_account\": \"ACC-EXT-T200\",\n  \"amount\": 500000,\n  \"currency\": \"INR\",\n  \"txn_type\": \"WIRE_IN\",\n  \"channel\": \"BRANCH\",\n  \"country\": \"AE\",\n  \"merchant_cat\": \"INVESTMENT\"\n}" },
+        "url": { "raw": "https://func-aml-ingest-geaxfhegfdamazeu.eastus-01.azurewebsites.net/transactions?code=dd3F1brlv2jPbobOf8ibNgv2FDjHc-3qwdFyjE0UfaDBAzFumqP1hA==" }
+      }
+    },
+    {
+      "name": "R2-LAY-2: 485K WIRE_OUT to Turkey (97% pass-through)",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": { "mode": "raw", "raw": "{\n  \"txn_id\": \"TXN-T2-LAY-002\",\n  \"account_id\": \"ACC-TEST-02\",\n  \"customer_id\": \"CUST-TEST-02\",\n  \"counterparty_account\": \"ACC-EXT-T201\",\n  \"amount\": 485000,\n  \"currency\": \"INR\",\n  \"txn_type\": \"WIRE_OUT\",\n  \"channel\": \"ONLINE\",\n  \"country\": \"TR\",\n  \"merchant_cat\": \"INVESTMENT\"\n}" },
+        "url": { "raw": "https://func-aml-ingest-geaxfhegfdamazeu.eastus-01.azurewebsites.net/transactions?code=dd3F1brlv2jPbobOf8ibNgv2FDjHc-3qwdFyjE0UfaDBAzFumqP1hA==" }
+      }
+    },
+    {
+      "name": "--- RULE 3: MULE (send all 4) ---",
+      "request": { "method": "GET", "header": [], "url": { "raw": "https://func-aml-ingest-geaxfhegfdamazeu.eastus-01.azurewebsites.net/health?code=dd3F1brlv2jPbobOf8ibNgv2FDjHc-3qwdFyjE0UfaDBAzFumqP1hA==" } }
+    },
+    {
+      "name": "R3-MULE-1: Sender A deposits 50K from Nigeria",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": { "mode": "raw", "raw": "{\n  \"txn_id\": \"TXN-T2-MULE-001\",\n  \"account_id\": \"ACC-TEST-03\",\n  \"customer_id\": \"CUST-TEST-03\",\n  \"counterparty_account\": \"ACC-SENDER-X1\",\n  \"amount\": 50000,\n  \"currency\": \"INR\",\n  \"txn_type\": \"WIRE_IN\",\n  \"channel\": \"ONLINE\",\n  \"country\": \"NG\",\n  \"merchant_cat\": \"PERSONAL\"\n}" },
+        "url": { "raw": "https://func-aml-ingest-geaxfhegfdamazeu.eastus-01.azurewebsites.net/transactions?code=dd3F1brlv2jPbobOf8ibNgv2FDjHc-3qwdFyjE0UfaDBAzFumqP1hA==" }
+      }
+    },
+    {
+      "name": "R3-MULE-2: Sender B deposits 60K",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": { "mode": "raw", "raw": "{\n  \"txn_id\": \"TXN-T2-MULE-002\",\n  \"account_id\": \"ACC-TEST-03\",\n  \"customer_id\": \"CUST-TEST-03\",\n  \"counterparty_account\": \"ACC-SENDER-X2\",\n  \"amount\": 60000,\n  \"currency\": \"INR\",\n  \"txn_type\": \"WIRE_IN\",\n  \"channel\": \"ONLINE\",\n  \"country\": \"NG\",\n  \"merchant_cat\": \"PERSONAL\"\n}" },
+        "url": { "raw": "https://func-aml-ingest-geaxfhegfdamazeu.eastus-01.azurewebsites.net/transactions?code=dd3F1brlv2jPbobOf8ibNgv2FDjHc-3qwdFyjE0UfaDBAzFumqP1hA==" }
+      }
+    },
+    {
+      "name": "R3-MULE-3: Sender C deposits 40K",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": { "mode": "raw", "raw": "{\n  \"txn_id\": \"TXN-T2-MULE-003\",\n  \"account_id\": \"ACC-TEST-03\",\n  \"customer_id\": \"CUST-TEST-03\",\n  \"counterparty_account\": \"ACC-SENDER-X3\",\n  \"amount\": 40000,\n  \"currency\": \"INR\",\n  \"txn_type\": \"WIRE_IN\",\n  \"channel\": \"ONLINE\",\n  \"country\": \"NG\",\n  \"merchant_cat\": \"PERSONAL\"\n}" },
+        "url": { "raw": "https://func-aml-ingest-geaxfhegfdamazeu.eastus-01.azurewebsites.net/transactions?code=dd3F1brlv2jPbobOf8ibNgv2FDjHc-3qwdFyjE0UfaDBAzFumqP1hA==" }
+      }
+    },
+    {
+      "name": "R3-MULE-4: Forward 96% OUT (145K)",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": { "mode": "raw", "raw": "{\n  \"txn_id\": \"TXN-T2-MULE-004\",\n  \"account_id\": \"ACC-TEST-03\",\n  \"customer_id\": \"CUST-TEST-03\",\n  \"counterparty_account\": \"ACC-EXIT-T999\",\n  \"amount\": 145000,\n  \"currency\": \"INR\",\n  \"txn_type\": \"WIRE_OUT\",\n  \"channel\": \"ONLINE\",\n  \"country\": \"NG\",\n  \"merchant_cat\": \"PERSONAL\"\n}" },
+        "url": { "raw": "https://func-aml-ingest-geaxfhegfdamazeu.eastus-01.azurewebsites.net/transactions?code=dd3F1brlv2jPbobOf8ibNgv2FDjHc-3qwdFyjE0UfaDBAzFumqP1hA==" }
+      }
+    },
+    {
+      "name": "--- RULE 4: DORMANT SPIKE ---",
+      "request": { "method": "GET", "header": [], "url": { "raw": "https://func-aml-ingest-geaxfhegfdamazeu.eastus-01.azurewebsites.net/health?code=dd3F1brlv2jPbobOf8ibNgv2FDjHc-3qwdFyjE0UfaDBAzFumqP1hA==" } }
+    },
+    {
+      "name": "R4-DORM-1: 250K from inactive account to Russia",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": { "mode": "raw", "raw": "{\n  \"txn_id\": \"TXN-T2-DORM-001\",\n  \"account_id\": \"ACC-2401\",\n  \"customer_id\": \"CUST-2401\",\n  \"counterparty_account\": \"ACC-EXT-T300\",\n  \"amount\": 250000,\n  \"currency\": \"INR\",\n  \"txn_type\": \"WIRE_OUT\",\n  \"channel\": \"ONLINE\",\n  \"country\": \"RU\",\n  \"merchant_cat\": \"PERSONAL\"\n}" },
+        "url": { "raw": "https://func-aml-ingest-geaxfhegfdamazeu.eastus-01.azurewebsites.net/transactions?code=dd3F1brlv2jPbobOf8ibNgv2FDjHc-3qwdFyjE0UfaDBAzFumqP1hA==" }
+      }
+    },
+    {
+      "name": "--- RULE 5: HIGH VELOCITY (send all 7 fast) ---",
+      "request": { "method": "GET", "header": [], "url": { "raw": "https://func-aml-ingest-geaxfhegfdamazeu.eastus-01.azurewebsites.net/health?code=dd3F1brlv2jPbobOf8ibNgv2FDjHc-3qwdFyjE0UfaDBAzFumqP1hA==" } }
+    },
+    {
+      "name": "R5-VEL-1: Rapid txn 1",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": { "mode": "raw", "raw": "{\n  \"txn_id\": \"TXN-T2-VEL-001\",\n  \"account_id\": \"ACC-TEST-05\",\n  \"customer_id\": \"CUST-TEST-05\",\n  \"counterparty_account\": \"ACC-EXT-T500\",\n  \"amount\": 15000,\n  \"currency\": \"INR\",\n  \"txn_type\": \"UPI_OUT\",\n  \"channel\": \"UPI\",\n  \"country\": \"IN\",\n  \"merchant_cat\": \"PERSONAL\"\n}" },
+        "url": { "raw": "https://func-aml-ingest-geaxfhegfdamazeu.eastus-01.azurewebsites.net/transactions?code=dd3F1brlv2jPbobOf8ibNgv2FDjHc-3qwdFyjE0UfaDBAzFumqP1hA==" }
+      }
+    },
+    {
+      "name": "R5-VEL-2", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}],
+        "body": { "mode": "raw", "raw": "{\"txn_id\":\"TXN-T2-VEL-002\",\"account_id\":\"ACC-TEST-05\",\"customer_id\":\"CUST-TEST-05\",\"counterparty_account\":\"ACC-EXT-T501\",\"amount\":12000,\"currency\":\"INR\",\"txn_type\":\"UPI_OUT\",\"channel\":\"UPI\",\"country\":\"IN\",\"merchant_cat\":\"PERSONAL\"}" },
+        "url": { "raw": "https://func-aml-ingest-geaxfhegfdamazeu.eastus-01.azurewebsites.net/transactions?code=dd3F1brlv2jPbobOf8ibNgv2FDjHc-3qwdFyjE0UfaDBAzFumqP1hA==" } }
+    },
+    {
+      "name": "R5-VEL-3", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}],
+        "body": { "mode": "raw", "raw": "{\"txn_id\":\"TXN-T2-VEL-003\",\"account_id\":\"ACC-TEST-05\",\"customer_id\":\"CUST-TEST-05\",\"counterparty_account\":\"ACC-EXT-T502\",\"amount\":18000,\"currency\":\"INR\",\"txn_type\":\"UPI_OUT\",\"channel\":\"UPI\",\"country\":\"IN\",\"merchant_cat\":\"PERSONAL\"}" },
+        "url": { "raw": "https://func-aml-ingest-geaxfhegfdamazeu.eastus-01.azurewebsites.net/transactions?code=dd3F1brlv2jPbobOf8ibNgv2FDjHc-3qwdFyjE0UfaDBAzFumqP1hA==" } }
+    },
+    {
+      "name": "R5-VEL-4", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}],
+        "body": { "mode": "raw", "raw": "{\"txn_id\":\"TXN-T2-VEL-004\",\"account_id\":\"ACC-TEST-05\",\"customer_id\":\"CUST-TEST-05\",\"counterparty_account\":\"ACC-EXT-T503\",\"amount\":9000,\"currency\":\"INR\",\"txn_type\":\"UPI_OUT\",\"channel\":\"UPI\",\"country\":\"IN\",\"merchant_cat\":\"PERSONAL\"}" },
+        "url": { "raw": "https://func-aml-ingest-geaxfhegfdamazeu.eastus-01.azurewebsites.net/transactions?code=dd3F1brlv2jPbobOf8ibNgv2FDjHc-3qwdFyjE0UfaDBAzFumqP1hA==" } }
+    },
+    {
+      "name": "R5-VEL-5", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}],
+        "body": { "mode": "raw", "raw": "{\"txn_id\":\"TXN-T2-VEL-005\",\"account_id\":\"ACC-TEST-05\",\"customer_id\":\"CUST-TEST-05\",\"counterparty_account\":\"ACC-EXT-T504\",\"amount\":22000,\"currency\":\"INR\",\"txn_type\":\"UPI_OUT\",\"channel\":\"UPI\",\"country\":\"IN\",\"merchant_cat\":\"PERSONAL\"}" },
+        "url": { "raw": "https://func-aml-ingest-geaxfhegfdamazeu.eastus-01.azurewebsites.net/transactions?code=dd3F1brlv2jPbobOf8ibNgv2FDjHc-3qwdFyjE0UfaDBAzFumqP1hA==" } }
+    },
+    {
+      "name": "R5-VEL-6", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}],
+        "body": { "mode": "raw", "raw": "{\"txn_id\":\"TXN-T2-VEL-006\",\"account_id\":\"ACC-TEST-05\",\"customer_id\":\"CUST-TEST-05\",\"counterparty_account\":\"ACC-EXT-T505\",\"amount\":11000,\"currency\":\"INR\",\"txn_type\":\"UPI_OUT\",\"channel\":\"UPI\",\"country\":\"IN\",\"merchant_cat\":\"PERSONAL\"}" },
+        "url": { "raw": "https://func-aml-ingest-geaxfhegfdamazeu.eastus-01.azurewebsites.net/transactions?code=dd3F1brlv2jPbobOf8ibNgv2FDjHc-3qwdFyjE0UfaDBAzFumqP1hA==" } }
+    },
+    {
+      "name": "R5-VEL-7", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}],
+        "body": { "mode": "raw", "raw": "{\"txn_id\":\"TXN-T2-VEL-007\",\"account_id\":\"ACC-TEST-05\",\"customer_id\":\"CUST-TEST-05\",\"counterparty_account\":\"ACC-EXT-T506\",\"amount\":14000,\"currency\":\"INR\",\"txn_type\":\"UPI_OUT\",\"channel\":\"UPI\",\"country\":\"IN\",\"merchant_cat\":\"PERSONAL\"}" },
+        "url": { "raw": "https://func-aml-ingest-geaxfhegfdamazeu.eastus-01.azurewebsites.net/transactions?code=dd3F1brlv2jPbobOf8ibNgv2FDjHc-3qwdFyjE0UfaDBAzFumqP1hA==" } }
+    },
+    {
+      "name": "--- RULE 8: WATCHLIST HIT ---",
+      "request": { "method": "GET", "header": [], "url": { "raw": "https://func-aml-ingest-geaxfhegfdamazeu.eastus-01.azurewebsites.net/health?code=dd3F1brlv2jPbobOf8ibNgv2FDjHc-3qwdFyjE0UfaDBAzFumqP1hA==" } }
+    },
+    {
+      "name": "R8-WL-1: Interpol customer 75K to Nigeria",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": { "mode": "raw", "raw": "{\n  \"txn_id\": \"TXN-T2-WL-001\",\n  \"account_id\": \"ACC-2701\",\n  \"customer_id\": \"CUST-2701\",\n  \"counterparty_account\": \"ACC-EXT-T800\",\n  \"amount\": 75000,\n  \"currency\": \"INR\",\n  \"txn_type\": \"WIRE_OUT\",\n  \"channel\": \"ONLINE\",\n  \"country\": \"NG\",\n  \"merchant_cat\": \"PERSONAL\"\n}" },
+        "url": { "raw": "https://func-aml-ingest-geaxfhegfdamazeu.eastus-01.azurewebsites.net/transactions?code=dd3F1brlv2jPbobOf8ibNgv2FDjHc-3qwdFyjE0UfaDBAzFumqP1hA==" }
+      }
+    },
+    {
+      "name": "R8-PEP-1: PEP customer 200K",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": { "mode": "raw", "raw": "{\n  \"txn_id\": \"TXN-T2-PEP-001\",\n  \"account_id\": \"ACC-2601\",\n  \"customer_id\": \"CUST-2601\",\n  \"counterparty_account\": \"ACC-EXT-T801\",\n  \"amount\": 200000,\n  \"currency\": \"INR\",\n  \"txn_type\": \"WIRE_OUT\",\n  \"channel\": \"BRANCH\",\n  \"country\": \"AE\",\n  \"merchant_cat\": \"REAL_ESTATE\"\n}" },
+        "url": { "raw": "https://func-aml-ingest-geaxfhegfdamazeu.eastus-01.azurewebsites.net/transactions?code=dd3F1brlv2jPbobOf8ibNgv2FDjHc-3qwdFyjE0UfaDBAzFumqP1hA==" }
+      }
+    },
+    {
+      "name": "--- RULE 11: CIRCULAR FLOW (send both, wait 2 min between) ---",
+      "request": { "method": "GET", "header": [], "url": { "raw": "https://func-aml-ingest-geaxfhegfdamazeu.eastus-01.azurewebsites.net/health?code=dd3F1brlv2jPbobOf8ibNgv2FDjHc-3qwdFyjE0UfaDBAzFumqP1hA==" } }
+    },
+    {
+      "name": "R11-CIRC-1: Money goes OUT (300K to ACC-TEST-06)",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": { "mode": "raw", "raw": "{\n  \"txn_id\": \"TXN-T2-CIRC-001\",\n  \"account_id\": \"ACC-TEST-07\",\n  \"customer_id\": \"CUST-TEST-07\",\n  \"counterparty_account\": \"ACC-TEST-06\",\n  \"amount\": 300000,\n  \"currency\": \"INR\",\n  \"txn_type\": \"WIRE_OUT\",\n  \"channel\": \"ONLINE\",\n  \"country\": \"IN\",\n  \"merchant_cat\": \"PERSONAL\"\n}" },
+        "url": { "raw": "https://func-aml-ingest-geaxfhegfdamazeu.eastus-01.azurewebsites.net/transactions?code=dd3F1brlv2jPbobOf8ibNgv2FDjHc-3qwdFyjE0UfaDBAzFumqP1hA==" }
+      }
+    },
+    {
+      "name": "R11-CIRC-2: Money comes BACK (280K from ACC-TEST-06) WAIT 2 MIN BEFORE SENDING",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": { "mode": "raw", "raw": "{\n  \"txn_id\": \"TXN-T2-CIRC-002\",\n  \"account_id\": \"ACC-TEST-06\",\n  \"customer_id\": \"CUST-TEST-06\",\n  \"counterparty_account\": \"ACC-TEST-07\",\n  \"amount\": 280000,\n  \"currency\": \"INR\",\n  \"txn_type\": \"WIRE_OUT\",\n  \"channel\": \"ONLINE\",\n  \"country\": \"IN\",\n  \"merchant_cat\": \"PERSONAL\"\n}" },
+        "url": { "raw": "https://func-aml-ingest-geaxfhegfdamazeu.eastus-01.azurewebsites.net/transactions?code=dd3F1brlv2jPbobOf8ibNgv2FDjHc-3qwdFyjE0UfaDBAzFumqP1hA==" }
+      }
+    },
+    {
+      "name": "--- CLEAN TRANSACTION (should NOT trigger any rule) ---",
+      "request": { "method": "GET", "header": [], "url": { "raw": "https://func-aml-ingest-geaxfhegfdamazeu.eastus-01.azurewebsites.net/health?code=dd3F1brlv2jPbobOf8ibNgv2FDjHc-3qwdFyjE0UfaDBAzFumqP1hA==" } }
+    },
+    {
+      "name": "CLEAN-1: Normal grocery purchase 2500",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": { "mode": "raw", "raw": "{\n  \"txn_id\": \"TXN-T2-CLEAN-001\",\n  \"account_id\": \"ACC-1050\",\n  \"customer_id\": \"CUST-1050\",\n  \"counterparty_account\": \"ACC-MER-T900\",\n  \"amount\": 2500,\n  \"currency\": \"INR\",\n  \"txn_type\": \"PURCHASE\",\n  \"channel\": \"CARD\",\n  \"country\": \"IN\",\n  \"merchant_cat\": \"GROCERY\"\n}" },
+        "url": { "raw": "https://func-aml-ingest-geaxfhegfdamazeu.eastus-01.azurewebsites.net/transactions?code=dd3F1brlv2jPbobOf8ibNgv2FDjHc-3qwdFyjE0UfaDBAzFumqP1hA==" }
+      }
+    },
+    {
+      "name": "CLEAN-2: Normal salary 85K",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": { "mode": "raw", "raw": "{\n  \"txn_id\": \"TXN-T2-CLEAN-002\",\n  \"account_id\": \"ACC-1060\",\n  \"customer_id\": \"CUST-1060\",\n  \"counterparty_account\": \"ACC-EMPLOYER-01\",\n  \"amount\": 85000,\n  \"currency\": \"INR\",\n  \"txn_type\": \"SALARY\",\n  \"channel\": \"NEFT\",\n  \"country\": \"IN\",\n  \"merchant_cat\": \"EMPLOYER\"\n}" },
+        "url": { "raw": "https://func-aml-ingest-geaxfhegfdamazeu.eastus-01.azurewebsites.net/transactions?code=dd3F1brlv2jPbobOf8ibNgv2FDjHc-3qwdFyjE0UfaDBAzFumqP1hA==" }
+      }
+    }
+  ]
+}
